@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.tsbuildinfo
+.DS_Store
+.vercel
+
+# La foto vive en src/assets/foto.jpeg; esta de la raiz es la copia original.
+/Foto.jpeg
