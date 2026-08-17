@@ -31,6 +31,13 @@ preferencia queda guardada en el dispositivo.
 Para mover el encuadre de la foto en el icono, se ajusta `FOCUS` en
 [`scripts/generate-icons.mjs`](scripts/generate-icons.mjs) y se corre `npm run icons`.
 
+## App compañera
+
+En [`android/`](android/README.md) vive **CyA Captura**, una app nativa que lee
+las notificaciones de Nequi, Davivienda y Mensajes para no tener que anotar los
+montos a mano. Todavía no se comunica con esta app web: por ahora solo recolecta
+textos reales para poder escribir los parsers.
+
 ## Estado
 
 Paso 1: identidad, bienvenida, PWA instalable y temas. El registro de gastos

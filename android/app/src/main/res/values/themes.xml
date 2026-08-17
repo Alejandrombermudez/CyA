@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose dibuja toda la interfaz; el tema solo aporta el fondo y la
+         barra de estado mientras arranca. -->
+    <style name="Theme.Captura" parent="android:Theme.DeviceDefault.DayNight" />
+</resources>
