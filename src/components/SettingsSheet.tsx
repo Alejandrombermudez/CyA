@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { hexToRgb, rgbToHex } from '../theme/color'
 import { NOMBRES, PRESETS, type Modo, type Periodo } from '../theme/themes'
 import type { Ajustes } from '../theme/useTheme'
+import type { Datos } from '../datos/almacen'
 
 const PERIODOS: Periodo[] = ['dia', 'tarde', 'noche']
 const CANALES = [
@@ -60,14 +61,18 @@ function EditorColor({
 export default function SettingsSheet({
   ajustes,
   periodo,
+  personas,
   onModo,
   onCustom,
+  onPersonas,
   onCerrar,
 }: {
   ajustes: Ajustes
   periodo: Periodo
+  personas: Datos['personas']
   onModo: (modo: Modo) => void
   onCustom: (parcial: Partial<Ajustes['custom']>) => void
+  onPersonas: (parcial: Partial<Datos['personas']>) => void
   onCerrar: () => void
 }) {
   useEffect(() => {
@@ -84,7 +89,27 @@ export default function SettingsSheet({
 
       <div className="sheet">
         <div className="sheet__handle" aria-hidden="true" />
-        <h2 className="sheet__titulo">Apariencia</h2>
+
+        <h2 className="sheet__titulo">Nosotros</h2>
+        <div className="nombres">
+          <input
+            className="campo"
+            value={personas.a}
+            placeholder="Ella"
+            onChange={(e) => onPersonas({ a: e.target.value })}
+            aria-label="Nombre de la primera persona"
+          />
+          <input
+            className="campo"
+            value={personas.b}
+            placeholder="Él"
+            onChange={(e) => onPersonas({ b: e.target.value })}
+            aria-label="Nombre de la segunda persona"
+          />
+        </div>
+        <p className="editores__nota">Son los nombres que aparecen al elegir quién pagó un gasto.</p>
+
+        <h2 className="sheet__titulo sheet__titulo--separado">Apariencia</h2>
 
         <div className="opciones">
           <button

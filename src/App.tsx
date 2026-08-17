@@ -1,23 +1,30 @@
 import { useState } from 'react'
 import Ambience from './components/Ambience'
+import FormularioGasto from './components/FormularioGasto'
+import Pager from './components/Pager'
 import SettingsSheet from './components/SettingsSheet'
 import Splash from './components/Splash'
 import TopBar from './components/TopBar'
-import { SALUDOS } from './theme/themes'
+import { useDatos } from './datos/almacen'
+import { sumar } from './dinero'
+import Bienvenida from './paginas/Bienvenida'
+import Gastos from './paginas/Gastos'
+import Ingresos from './paginas/Ingresos'
 import { useAhora, useTheme } from './theme/useTheme'
 
-const fechaLarga = new Intl.DateTimeFormat('es-CO', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-})
+const PAGINAS = ['Bienvenida', 'Ingresos', 'Gastos']
 
 export default function App() {
   const [bienvenida, setBienvenida] = useState(true)
   const [opciones, setOpciones] = useState(false)
+  const [anotando, setAnotando] = useState(false)
+  const [pagina, setPagina] = useState(0)
 
   const ahora = useAhora()
   const { ajustes, periodo, cambiarModo, cambiarCustom } = useTheme(ahora)
+  const datos = useDatos()
+
+  const libre = sumar(datos.datos.ingresos) - sumar(datos.datos.fijos)
 
   return (
     <>
@@ -28,27 +35,60 @@ export default function App() {
       <div className="app" aria-hidden={bienvenida}>
         <TopBar ahora={ahora} onAbrirOpciones={() => setOpciones(true)} />
 
-        <main className="home">
-          <p className="home__greeting">{SALUDOS[periodo]}</p>
-          <p className="home__date">{fechaLarga.format(ahora)}</p>
+        <Pager pagina={pagina} onCambio={setPagina}>
+          <Bienvenida ahora={ahora} periodo={periodo} onIrAIngresos={() => setPagina(1)} />
 
-          <section className="card card--empty">
-            <p className="card__title">Todavía no hay nada registrado</p>
-            <p className="card__body">
-              La app ya está instalada y funciona sin internet. El siguiente paso es
-              definir qué queremos anotar: gastos, ingresos, presupuestos, fijos.
-            </p>
-          </section>
-        </main>
+          <Ingresos
+            ingresos={datos.datos.ingresos}
+            fijos={datos.datos.fijos}
+            onCambiarLinea={datos.cambiarLinea}
+            onBorrarLinea={datos.borrarLinea}
+            onAgregarLinea={datos.agregarLinea}
+          />
+
+          <Gastos
+            gastos={datos.gastosDelMes()}
+            libre={libre}
+            personas={datos.datos.personas}
+            onBorrar={datos.borrarGasto}
+            onAnotar={() => setAnotando(true)}
+          />
+        </Pager>
+
+        <nav className="puntos" aria-label="Páginas">
+          <span className="puntos__nombre">{PAGINAS[pagina]}</span>
+          <span className="puntos__fila">
+            {PAGINAS.map((nombre, i) => (
+              <button
+                key={nombre}
+                type="button"
+                className={`punto${i === pagina ? ' is-activo' : ''}`}
+                onClick={() => setPagina(i)}
+                aria-label={nombre}
+                aria-current={i === pagina}
+              />
+            ))}
+          </span>
+        </nav>
       </div>
 
       {opciones && (
         <SettingsSheet
           ajustes={ajustes}
           periodo={periodo}
+          personas={datos.datos.personas}
           onModo={cambiarModo}
           onCustom={cambiarCustom}
+          onPersonas={datos.cambiarPersonas}
           onCerrar={() => setOpciones(false)}
+        />
+      )}
+
+      {anotando && (
+        <FormularioGasto
+          personas={datos.datos.personas}
+          onGuardar={datos.agregarGasto}
+          onCerrar={() => setAnotando(false)}
         />
       )}
     </>
