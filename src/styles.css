@@ -1282,3 +1282,127 @@ button {
   color: var(--text-soft);
   font-size: 13px;
 }
+
+/* ---------------------------------------------------------------------------
+   Tarjetas de la portada
+   --------------------------------------------------------------------------- */
+
+.navcards {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.navcard {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  box-shadow: var(--shadow);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.navcard:active {
+  transform: scale(0.985);
+  border-color: var(--accent);
+}
+
+.navcard__titulo {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.navcard__valor {
+  grid-column: 1;
+  font-size: 23px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.navcard__pie {
+  grid-column: 1;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.navcard__flecha {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  color: var(--accent);
+  font-size: 18px;
+}
+
+/* ---------------------------------------------------------------------------
+   Comparación con la sesión anterior y peso sugerido
+   --------------------------------------------------------------------------- */
+
+.anterior {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0 0 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text-soft) 10%, transparent);
+  font-size: 13px;
+}
+
+.anterior__fecha {
+  color: var(--text-soft);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.anterior__peso {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.anterior__reps {
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.sugerencia {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  font-size: 12px;
+}
+
+.sugerencia strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sugerencia span {
+  color: var(--text-soft);
+}
+
+/* Bajar el peso no es un castigo, pero tampoco debe leerse como un logro. */
+.sugerencia--bajar {
+  border-left-color: var(--text-soft);
+  background: color-mix(in srgb, var(--text-soft) 10%, transparent);
+}
+
+.sugerencia--mantener {
+  border-left-color: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent-soft) 14%, transparent);
+}

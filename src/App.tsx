@@ -27,6 +27,8 @@ export default function App() {
   const datos = useDatos()
 
   const libre = sumar(datos.datos.ingresos) - sumar(datos.datos.fijos)
+  const gastosDelMes = datos.gastosDelMes()
+  const gastado = sumar(gastosDelMes)
 
   return (
     <>
@@ -38,7 +40,13 @@ export default function App() {
         <TopBar ahora={ahora} onAbrirOpciones={() => setOpciones(true)} />
 
         <Pager pagina={pagina} onCambio={setPagina}>
-          <Bienvenida ahora={ahora} periodo={periodo} onIrAIngresos={() => setPagina(1)} />
+          <Bienvenida
+            ahora={ahora}
+            periodo={periodo}
+            libre={libre}
+            gastado={gastado}
+            onIr={setPagina}
+          />
 
           <Ingresos
             ingresos={datos.datos.ingresos}
@@ -49,7 +57,7 @@ export default function App() {
           />
 
           <Gastos
-            gastos={datos.gastosDelMes()}
+            gastos={gastosDelMes}
             libre={libre}
             personas={datos.datos.personas}
             onBorrar={datos.borrarGasto}

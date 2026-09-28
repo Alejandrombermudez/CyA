@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
 import type { Entrenos, SerieHecha } from '../datos/rutina'
 import { SEMANA, rutinaDe } from '../datos/rutina'
+import { historial, sugerir } from '../datos/progresion'
 
 const DIAS_CORTOS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']
 const mesLargo = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' })
 const diaLargo = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
+const diaCorto = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'short' })
 
 /** "2026-09-28" en hora local, sin que UTC corra el día. */
 function aISO(f: Date): string {
@@ -41,20 +43,6 @@ function estadoDe(iso: string, entrenos: Entrenos): Estado {
   }
   if (hechas === 0) return 'pendiente'
   return hechas >= totales ? 'completo' : 'parcial'
-}
-
-/** Último peso registrado para ese ejercicio antes de la fecha dada. */
-function ultimoPeso(entrenos: Entrenos, ejercicio: string, antesDe: string): number | null {
-  const fechas = Object.keys(entrenos)
-    .filter((f) => f < antesDe)
-    .sort()
-    .reverse()
-
-  for (const f of fechas) {
-    const ultima = entrenos[f]?.[ejercicio]?.filter(Boolean).at(-1)
-    if (ultima) return ultima.peso
-  }
-  return null
 }
 
 function FilaSerie({
@@ -264,7 +252,9 @@ export default function Entrenamiento({
           {rutina.ejercicios.map((ej) => {
             const series = registro[ej.nombre] ?? []
             const hechas = series.filter(Boolean).length
-            const previo = ultimoPeso(entrenos, ej.nombre, seleccionada)
+            const previas = historial(entrenos, ej.nombre, seleccionada)
+            const anterior = previas[0]
+            const sugerencia = sugerir(ej, previas, seleccionada)
             const estaAbierto = abierto === ej.nombre
 
             return (
@@ -287,15 +277,35 @@ export default function Entrenamiento({
                 {estaAbierto && (
                   <div className="ejercicio__cuerpo">
                     {ej.nota && <p className="ejercicio__nota">{ej.nota}</p>}
-                    {previo !== null && (
-                      <p className="ejercicio__nota">La última vez levantaste {previo} kg.</p>
+
+                    {anterior ? (
+                      <p className="anterior">
+                        <span className="anterior__fecha">{diaCorto.format(deISO(anterior.fecha))}</span>
+                        <span className="anterior__peso">{anterior.peso} kg</span>
+                        <span className="anterior__reps">
+                          {anterior.series.map((s) => s.reps).join(' · ')} reps
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="ejercicio__nota">
+                        Primera vez. Elegí un peso que te deje terminar las series con RIR {ej.rir};
+                        queda guardado para comparar la próxima.
+                      </p>
                     )}
+
+                    {sugerencia && (
+                      <p className={`sugerencia sugerencia--${sugerencia.tipo}`}>
+                        <strong>Hoy: {sugerencia.peso} kg</strong>
+                        <span>{sugerencia.texto}</span>
+                      </p>
+                    )}
+
                     {Array.from({ length: ej.series }, (_, i) => (
                       <FilaSerie
                         key={i}
                         indice={i}
                         guardada={series[i] ?? null}
-                        pesoSugerido={previo ?? 0}
+                        pesoSugerido={sugerencia?.peso ?? 0}
                         repsSugeridas={topeBajo(ej.reps)}
                         onMarcar={(valor) => onMarcarSerie(seleccionada, ej.nombre, i, valor, ej.series)}
                       />
@@ -307,8 +317,9 @@ export default function Entrenamiento({
           })}
 
           <p className="aviso aviso--suave">
-            Cuando completes el tope del rango en todas las series con el RIR objetivo, subí el peso:
-            2,5 kg en tren superior y 5 kg en tren inferior.
+            El peso de cada ejercicio lo sugiere la app mirando tus sesiones anteriores: sube cuando
+            cerrás el tope del rango en todas las series, y también si llevás tres sesiones o dos
+            semanas clavado en el mismo peso.
           </p>
         </>
       )}
