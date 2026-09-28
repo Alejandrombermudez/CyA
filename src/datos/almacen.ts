@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { claveMes, hoyISO } from '../dinero'
+import type { Entrenos, SerieHecha } from './rutina'
 
 export type Movimiento = { id: string; nombre: string; monto: number }
 
@@ -18,6 +19,7 @@ export type Datos = {
   ingresos: Movimiento[]
   fijos: Movimiento[]
   gastos: Gasto[]
+  entrenos: Entrenos
 }
 
 const CLAVE = 'cya:datos'
@@ -36,6 +38,7 @@ export const INICIAL: Datos = {
     { id: 'moto', nombre: 'Crédito moto', monto: 700_000 },
   ],
   gastos: [],
+  entrenos: {},
 }
 
 const nuevoId = () =>
@@ -54,6 +57,7 @@ function leer(): Datos {
       ingresos: guardado.ingresos ?? INICIAL.ingresos,
       fijos: guardado.fijos ?? INICIAL.fijos,
       gastos: guardado.gastos ?? [],
+      entrenos: guardado.entrenos ?? {},
     }
   } catch {
     return INICIAL
@@ -100,6 +104,20 @@ export function useDatos() {
     setDatos((d) => ({ ...d, personas: { ...d.personas, ...parcial } }))
   }, [])
 
+  /** Marca (o desmarca con null) una serie de un ejercicio en una fecha. */
+  const marcarSerie = useCallback(
+    (fecha: string, ejercicio: string, indice: number, valor: SerieHecha | null, totalSeries: number) => {
+      setDatos((d) => {
+        const dia = { ...(d.entrenos[fecha] ?? {}) }
+        const series = [...(dia[ejercicio] ?? Array<SerieHecha | null>(totalSeries).fill(null))]
+        series[indice] = valor
+        dia[ejercicio] = series
+        return { ...d, entrenos: { ...d.entrenos, [fecha]: dia } }
+      })
+    },
+    [],
+  )
+
   const gastosDelMes = useCallback(
     (mes = claveMes(hoyISO())) => datos.gastos.filter((g) => claveMes(g.fecha) === mes),
     [datos.gastos],
@@ -113,6 +131,7 @@ export function useDatos() {
     cambiarLinea,
     borrarLinea,
     cambiarPersonas,
+    marcarSerie,
     gastosDelMes,
   }
 }

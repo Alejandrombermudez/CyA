@@ -420,6 +420,11 @@ button {
   scroll-snap-align: start;
   scroll-snap-stop: always;
   padding: 8px 20px calc(96px + var(--safe-bottom));
+  scrollbar-width: none;
+}
+
+.pagina::-webkit-scrollbar {
+  display: none;
 }
 
 /* La de bienvenida no tiene contenido que scrollee: va centrada. */
@@ -688,6 +693,14 @@ button {
   line-height: 1;
   box-shadow: 0 8px 22px -8px rgb(0 0 0 / 55%);
   cursor: pointer;
+  animation: fab-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fab-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
 }
 
 .fab:active {
@@ -1011,4 +1024,261 @@ button {
     animation-duration: 400ms;
     animation-delay: 0ms;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Entrenamiento
+   --------------------------------------------------------------------------- */
+
+.calendario {
+  padding: 4px 0 6px;
+}
+
+.calendario__barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.calendario__barra span::first-letter {
+  text-transform: uppercase;
+}
+
+.calendario__barra button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-soft);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calendario__grilla {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendario__cabecera {
+  padding-bottom: 4px;
+  color: var(--text-soft);
+  font-size: 11px;
+  text-align: center;
+}
+
+.dia {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+/* Los días con rutina se marcan con una pastilla de color tenue. */
+.dia--pierna,
+.dia--torso {
+  color: var(--text);
+}
+
+.dia--pierna {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.dia--torso {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.dia--completo {
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+.dia--parcial {
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.dia.is-hoy {
+  border-color: var(--text);
+}
+
+.dia.is-elegido {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.leyenda {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+
+.leyenda span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pastilla {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.pastilla--pierna {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.pastilla--torso {
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.pastilla--hecho {
+  background: var(--accent);
+}
+
+.foco {
+  margin: 0 0 12px;
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.aviso {
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.aviso--suave {
+  margin-top: 20px;
+  border-left-color: var(--border);
+  background: none;
+  font-size: 12px;
+}
+
+.ejercicio {
+  border-bottom: 1px solid var(--border);
+}
+
+.ejercicio__cabecera {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  width: 100%;
+  padding: 13px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ejercicio__nombre {
+  font-weight: 600;
+}
+
+.ejercicio__meta {
+  grid-column: 1;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ejercicio__progreso {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--text-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ejercicio.is-completo .ejercicio__nombre {
+  color: var(--accent);
+}
+
+.ejercicio.is-completo .ejercicio__progreso {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ejercicio__cuerpo {
+  padding: 2px 0 14px;
+}
+
+.ejercicio__nota {
+  margin: 0 0 10px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.serie {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+}
+
+.serie__check {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  background: none;
+  color: var(--text-soft);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.serie.is-hecha .serie__check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.serie__campo {
+  width: 3.6em;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.serie__campo:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.serie__unidad {
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.serie__por {
+  color: var(--text-soft);
+  font-size: 13px;
 }

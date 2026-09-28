@@ -15,13 +15,11 @@ export default function Gastos({
   libre,
   personas,
   onBorrar,
-  onAnotar,
 }: {
   gastos: Gasto[]
   libre: number
   personas: Datos['personas']
   onBorrar: (id: string) => void
-  onAnotar: () => void
 }) {
   const gastado = sumar(gastos)
   const queda = libre - gastado
@@ -73,10 +71,6 @@ export default function Gastos({
           </div>
         ))
       )}
-
-      <button type="button" className="fab" onClick={onAnotar} aria-label="Anotar un gasto">
-        +
-      </button>
     </section>
   )
 }

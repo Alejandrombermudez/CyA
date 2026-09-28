@@ -8,11 +8,13 @@ import TopBar from './components/TopBar'
 import { useDatos } from './datos/almacen'
 import { sumar } from './dinero'
 import Bienvenida from './paginas/Bienvenida'
+import Entrenamiento from './paginas/Entrenamiento'
 import Gastos from './paginas/Gastos'
 import Ingresos from './paginas/Ingresos'
 import { useAhora, useTheme } from './theme/useTheme'
 
-const PAGINAS = ['Bienvenida', 'Ingresos', 'Gastos']
+const PAGINAS = ['Bienvenida', 'Ingresos', 'Gastos', 'Entrenamiento']
+const PAGINA_GASTOS = 2
 
 export default function App() {
   const [bienvenida, setBienvenida] = useState(true)
@@ -51,9 +53,21 @@ export default function App() {
             libre={libre}
             personas={datos.datos.personas}
             onBorrar={datos.borrarGasto}
-            onAnotar={() => setAnotando(true)}
+          />
+
+          <Entrenamiento
+            hoy={ahora}
+            entrenos={datos.datos.entrenos}
+            onMarcarSerie={datos.marcarSerie}
           />
         </Pager>
+
+        {/* Fuera del carril: con position fixed dentro de una pagina se veia en todas. */}
+        {pagina === PAGINA_GASTOS && (
+          <button type="button" className="fab" onClick={() => setAnotando(true)} aria-label="Anotar un gasto">
+            +
+          </button>
+        )}
 
         <nav className="puntos" aria-label="Páginas">
           <span className="puntos__nombre">{PAGINAS[pagina]}</span>
