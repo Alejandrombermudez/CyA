@@ -3,6 +3,7 @@ import { hexToRgb, rgbToHex } from '../theme/color'
 import { NOMBRES, PRESETS, type Modo, type Periodo } from '../theme/themes'
 import type { Ajustes } from '../theme/useTheme'
 import type { Datos } from '../datos/almacen'
+import Respaldo from './Respaldo'
 
 const PERIODOS: Periodo[] = ['dia', 'tarde', 'noche']
 const CANALES = [
@@ -62,6 +63,8 @@ export default function SettingsSheet({
   ajustes,
   periodo,
   personas,
+  datos,
+  onImportar,
   onModo,
   onCustom,
   onPersonas,
@@ -70,6 +73,8 @@ export default function SettingsSheet({
   ajustes: Ajustes
   periodo: Periodo
   personas: Datos['personas']
+  datos: Datos
+  onImportar: (datos: Datos) => void
   onModo: (modo: Modo) => void
   onCustom: (parcial: Partial<Ajustes['custom']>) => void
   onPersonas: (parcial: Partial<Datos['personas']>) => void
@@ -177,6 +182,9 @@ export default function SettingsSheet({
             </p>
           </div>
         )}
+
+        <h2 className="sheet__titulo sheet__titulo--separado">Respaldo</h2>
+        <Respaldo datos={datos} onImportar={onImportar} />
 
         <button type="button" className="sheet__cerrar" onClick={onCerrar}>
           Listo

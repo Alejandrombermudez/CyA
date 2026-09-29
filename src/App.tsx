@@ -99,6 +99,8 @@ export default function App() {
           ajustes={ajustes}
           periodo={periodo}
           personas={datos.datos.personas}
+          datos={datos.datos}
+          onImportar={datos.reemplazarTodo}
           onModo={cambiarModo}
           onCustom={cambiarCustom}
           onPersonas={datos.cambiarPersonas}

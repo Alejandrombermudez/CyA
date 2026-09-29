@@ -118,6 +118,9 @@ export function useDatos() {
     [],
   )
 
+  /** Reemplaza todo con lo que venga de un respaldo importado. */
+  const reemplazarTodo = useCallback((nuevos: Datos) => setDatos(nuevos), [])
+
   const gastosDelMes = useCallback(
     (mes = claveMes(hoyISO())) => datos.gastos.filter((g) => claveMes(g.fecha) === mes),
     [datos.gastos],
@@ -132,6 +135,7 @@ export function useDatos() {
     borrarLinea,
     cambiarPersonas,
     marcarSerie,
+    reemplazarTodo,
     gastosDelMes,
   }
 }
