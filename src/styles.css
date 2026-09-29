@@ -1538,6 +1538,9 @@ button {
   inset: 0;
   width: 100%;
   height: 100%;
+  /* Es decoración: si no, al estar posicionado y venir antes en el DOM,
+     se dibuja encima del botón y se come todos los clics reales. */
+  pointer-events: none;
 }
 
 .anillo__svg circle {
@@ -1565,6 +1568,7 @@ button {
 }
 
 .anillo__centro {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
