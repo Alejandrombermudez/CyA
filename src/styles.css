@@ -1519,3 +1519,115 @@ button {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------------------------------------
+   Anillo de la sesión guiada
+   --------------------------------------------------------------------------- */
+
+.anillo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(74vw, 280px);
+  margin: 10px auto 22px;
+  aspect-ratio: 1;
+}
+
+.anillo__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.anillo__svg circle {
+  fill: none;
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.anillo__pista {
+  stroke: color-mix(in srgb, var(--text-soft) 22%, transparent);
+}
+
+.anillo__hecho {
+  stroke: var(--accent);
+  transition: stroke-dasharray 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* El segmento en curso se marca con un trazo fino por fuera de la pista.
+   Va anidado porque `.anillo__svg circle` le ganaba el grosor por especificidad. */
+.anillo__svg .anillo__actual {
+  stroke: var(--accent);
+  stroke-width: 3;
+  transform: scale(1.11);
+  transform-origin: 100px 100px;
+}
+
+.anillo__centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 62%;
+  aspect-ratio: 1;
+  padding: 10px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  cursor: pointer;
+  transition: transform 160ms ease, background 300ms ease;
+}
+
+.anillo__centro:active {
+  transform: scale(0.95);
+}
+
+.anillo__centro:disabled {
+  cursor: default;
+}
+
+.anillo__etiqueta {
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.anillo__grande {
+  font-size: 26px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.anillo__pie {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Al terminar el descanso el anillo late hasta que lo toques. */
+.anillo.is-sonando .anillo__centro {
+  animation: latir 1.1s ease-in-out infinite;
+}
+
+@keyframes latir {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 16px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anillo.is-sonando .anillo__centro {
+    animation: none;
+    outline: 3px solid var(--accent);
+  }
+}

@@ -1,7 +1,11 @@
-import { useMemo, useState } from 'react'
-import type { Ejercicio, Entrenos, Medida, SerieHecha, Variante } from '../datos/rutina'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { DiaRutina, Ejercicio, Entrenos, Medida, SerieHecha, Variante } from '../datos/rutina'
 import { SEMANA, rutinaDe } from '../datos/rutina'
 import { historial, sugerir, type SesionPrevia } from '../datos/progresion'
+import AnilloSesion, { type Progreso } from '../components/AnilloSesion'
+
+/** Dónde quedó la sesión: primer ejercicio con series sin marcar. */
+type Punto = { indice: number; ej: Ejercicio; variante: Variante; serie: number }
 
 const DIAS_CORTOS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']
 const mesLargo = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' })
@@ -57,6 +61,35 @@ function varianteElegida(
   return ej.variantes[0]
 }
 
+/** Progreso de cada ejercicio del día y en qué serie quedó la sesión. */
+function repasarSesion(
+  rutina: DiaRutina | null,
+  fecha: string,
+  entrenos: Entrenos,
+  elecciones: Record<string, string>,
+): { progresos: Progreso[]; punto: Punto | null } {
+  const progresos: Progreso[] = []
+  let punto: Punto | null = null
+  if (!rutina) return { progresos, punto }
+
+  for (let i = 0; i < rutina.ejercicios.length; i++) {
+    const ej = rutina.ejercicios[i]
+    const variante = varianteElegida(ej, fecha, entrenos, elecciones)
+    const series = entrenos[fecha]?.[variante.id] ?? []
+
+    let hechas = 0
+    let libre = -1
+    for (let s = 0; s < ej.series; s++) {
+      if (series[s]) hechas++
+      else if (libre === -1) libre = s
+    }
+
+    progresos.push({ nombre: variante.nombre, hechas, total: ej.series })
+    if (!punto && libre !== -1) punto = { indice: i, ej, variante, serie: libre }
+  }
+  return { progresos, punto }
+}
+
 type Estado = 'completo' | 'parcial' | 'pendiente' | 'descanso'
 
 function estadoDe(iso: string, entrenos: Entrenos, elecciones: Record<string, string>): Estado {
@@ -107,6 +140,11 @@ function FilaSerie({
   const [reps, setReps] = useState(guardada?.reps ?? repsSugeridas)
   const hecha = guardada !== null
 
+  // Lo guardado manda sobre el estado local: el botón del anillo marca series
+  // desde afuera y la fila tiene que mostrar ese valor, no el que tenía antes.
+  const pesoVisible = guardada?.peso ?? peso
+  const repsVisibles = guardada?.reps ?? reps
+
   function editar(nuevoPeso: number, nuevasReps: number) {
     setPeso(nuevoPeso)
     setReps(nuevasReps)
@@ -119,9 +157,9 @@ function FilaSerie({
       <input
         className="serie__campo"
         inputMode="decimal"
-        value={peso || ''}
+        value={pesoVisible || ''}
         placeholder="0"
-        onChange={(e) => editar(Number(e.target.value.replace(',', '.')) || 0, reps)}
+        onChange={(e) => editar(Number(e.target.value.replace(',', '.')) || 0, repsVisibles)}
         aria-label={`${etiqueta} de la serie ${indice + 1}`}
       />
       <span className="serie__unidad">kg</span>
@@ -133,9 +171,9 @@ function FilaSerie({
       <input
         className="serie__campo"
         inputMode="numeric"
-        value={reps || ''}
+        value={repsVisibles || ''}
         placeholder="0"
-        onChange={(e) => editar(peso, Number(e.target.value.replace(/\D/g, '')) || 0)}
+        onChange={(e) => editar(pesoVisible, Number(e.target.value.replace(/\D/g, '')) || 0)}
         aria-label={`${etiqueta} de la serie ${indice + 1}`}
       />
       <span className="serie__unidad">{unidad}</span>
@@ -147,7 +185,7 @@ function FilaSerie({
       <button
         type="button"
         className="serie__check"
-        onClick={() => onMarcar(hecha ? null : { peso, reps })}
+        onClick={() => onMarcar(hecha ? null : { peso: pesoVisible, reps: repsVisibles })}
         aria-pressed={hecha}
         aria-label={`Serie ${indice + 1}${hecha ? ', hecha' : ''}`}
       >
@@ -232,6 +270,54 @@ export default function Entrenamiento({
 
   const mover = (delta: number) =>
     setMesVisible((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1))
+
+  // Cuánto lleva hecho cada ejercicio y en qué serie va la sesión.
+  const { progresos, punto } = useMemo(
+    () => repasarSesion(rutina, seleccionada, entrenos, elecciones),
+    [rutina, seleccionada, entrenos, elecciones],
+  )
+
+  // El ejercicio en curso se abre solo; si abrís otro a mano, ese manda hasta
+  // que la sesión avance al siguiente.
+  const autoAbierto = useRef<string | null>(null)
+  useEffect(() => {
+    const id = punto?.ej.id ?? null
+    if (id && id !== autoAbierto.current) {
+      autoAbierto.current = id
+      setAbierto(id)
+    }
+  }, [punto?.ej.id])
+
+  /**
+   * Registra la serie en curso. Lo que ya cargaste hoy en ese ejercicio manda
+   * sobre la sugerencia: si corregiste el peso en la primera serie, las
+   * siguientes repiten ese, no el que la app había propuesto.
+   */
+  function completarSerie() {
+    if (!punto) return
+
+    const hoyMismo = (entrenos[seleccionada]?.[punto.variante.id] ?? []).filter(
+      Boolean,
+    ) as SerieHecha[]
+    const ultima = hoyMismo.at(-1)
+    if (ultima) {
+      onMarcarSerie(seleccionada, punto.variante.id, punto.serie, { ...ultima }, punto.ej.series)
+      return
+    }
+
+    const previas = historial(entrenos, punto.variante.id, seleccionada)
+    const sugerencia = sugerir(punto.ej, punto.variante, previas, seleccionada)
+    onMarcarSerie(
+      seleccionada,
+      punto.variante.id,
+      punto.serie,
+      {
+        peso: sugerencia?.peso ?? 0,
+        reps: sugerencia?.reps ?? topeBajo(punto.ej.reps),
+      },
+      punto.ej.series,
+    )
+  }
 
   return (
     <section className="pagina">
@@ -320,6 +406,15 @@ export default function Entrenamiento({
         </p>
       ) : (
         <>
+          <AnilloSesion
+            progresos={progresos}
+            indiceActual={punto?.indice ?? null}
+            etiqueta={punto?.variante.nombre ?? ''}
+            serieTexto={punto ? `Serie ${punto.serie + 1} de ${punto.ej.series}` : ''}
+            descanso={punto?.ej.descanso ?? '90 s'}
+            onCompletar={completarSerie}
+          />
+
           <p className="foco">{rutina.foco}</p>
           <p className="aviso">
             Calentá 5 minutos de bici o caminadora y hacé 2 series suaves del primer ejercicio antes
