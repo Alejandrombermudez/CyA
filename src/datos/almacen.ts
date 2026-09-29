@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { claveMes, hoyISO } from '../dinero'
+import { migrarNombres } from './rutina'
 import type { Entrenos, SerieHecha } from './rutina'
 
 export type Movimiento = { id: string; nombre: string; monto: number }
@@ -20,6 +21,8 @@ export type Datos = {
   fijos: Movimiento[]
   gastos: Gasto[]
   entrenos: Entrenos
+  /** Clave "fecha|ejercicioId" -> id de la variante elegida ese día. */
+  elecciones: Record<string, string>
 }
 
 const CLAVE = 'cya:datos'
@@ -29,7 +32,7 @@ const CLAVE = 'cya:datos'
  * asi que esto es solo el punto de partida.
  */
 export const INICIAL: Datos = {
-  version: 1,
+  version: 2,
   personas: { a: 'C', b: 'A' },
   ingresos: [{ id: 'sueldo', nombre: 'Sueldo', monto: 5_000_000 }],
   fijos: [
@@ -39,6 +42,7 @@ export const INICIAL: Datos = {
   ],
   gastos: [],
   entrenos: {},
+  elecciones: {},
 }
 
 const nuevoId = () =>
@@ -52,12 +56,16 @@ function leer(): Datos {
     if (!crudo) return INICIAL
     const guardado = JSON.parse(crudo) as Partial<Datos>
     return {
-      version: guardado.version ?? INICIAL.version,
+      version: INICIAL.version,
       personas: { ...INICIAL.personas, ...guardado.personas },
       ingresos: guardado.ingresos ?? INICIAL.ingresos,
       fijos: guardado.fijos ?? INICIAL.fijos,
       gastos: guardado.gastos ?? [],
-      entrenos: guardado.entrenos ?? {},
+      entrenos:
+        (guardado.version ?? 1) < 2
+          ? migrarNombres(guardado.entrenos ?? {})
+          : (guardado.entrenos ?? {}),
+      elecciones: guardado.elecciones ?? {},
     }
   } catch {
     return INICIAL
@@ -121,6 +129,14 @@ export function useDatos() {
   /** Reemplaza todo con lo que venga de un respaldo importado. */
   const reemplazarTodo = useCallback((nuevos: Datos) => setDatos(nuevos), [])
 
+  /** Deja anotado con qué variante se hizo un ejercicio ese día. */
+  const elegirVariante = useCallback((fecha: string, ejercicioId: string, varianteId: string) => {
+    setDatos((d) => ({
+      ...d,
+      elecciones: { ...d.elecciones, [`${fecha}|${ejercicioId}`]: varianteId },
+    }))
+  }, [])
+
   const gastosDelMes = useCallback(
     (mes = claveMes(hoyISO())) => datos.gastos.filter((g) => claveMes(g.fecha) === mes),
     [datos.gastos],
@@ -135,6 +151,7 @@ export function useDatos() {
     borrarLinea,
     cambiarPersonas,
     marcarSerie,
+    elegirVariante,
     reemplazarTodo,
     gastosDelMes,
   }

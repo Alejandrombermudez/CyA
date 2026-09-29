@@ -1,4 +1,5 @@
 import type { Datos } from './almacen'
+import { migrarNombres } from './rutina'
 
 /** Envoltorio del archivo, para poder reconocerlo al importar. */
 export type Respaldo = {
@@ -78,13 +79,16 @@ export function leerRespaldo(texto: string): Lectura {
     return { ok: false, error: 'Esto no parece un respaldo de CyA.' }
   }
 
+  const version = posibles.version ?? 1
   const datos: Datos = {
-    version: posibles.version ?? 1,
+    version: 2,
     personas: { a: 'C', b: 'A', ...posibles.personas },
     ingresos: posibles.ingresos ?? [],
     fijos: posibles.fijos ?? [],
     gastos: posibles.gastos ?? [],
-    entrenos: posibles.entrenos ?? {},
+    // Un respaldo viejo trae el historial con nombres, no con ids de variante.
+    entrenos: version < 2 ? migrarNombres(posibles.entrenos ?? {}) : (posibles.entrenos ?? {}),
+    elecciones: posibles.elecciones ?? {},
   }
 
   return { ok: true, datos, resumen: resumir(datos) }

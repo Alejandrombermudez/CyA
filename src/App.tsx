@@ -66,7 +66,9 @@ export default function App() {
           <Entrenamiento
             hoy={ahora}
             entrenos={datos.datos.entrenos}
+            elecciones={datos.datos.elecciones}
             onMarcarSerie={datos.marcarSerie}
+            onElegirVariante={datos.elegirVariante}
           />
         </Pager>
 

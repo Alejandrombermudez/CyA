@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import type { Entrenos, SerieHecha } from '../datos/rutina'
+import type { Ejercicio, Entrenos, Medida, SerieHecha, Variante } from '../datos/rutina'
 import { SEMANA, rutinaDe } from '../datos/rutina'
-import { historial, sugerir } from '../datos/progresion'
+import { historial, sugerir, type SesionPrevia } from '../datos/progresion'
 
 const DIAS_CORTOS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']
 const mesLargo = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' })
@@ -26,33 +26,78 @@ const columnaDe = (f: Date) => (f.getDay() + 6) % 7
 /** Primer número del rango: "6-8" -> 6, "30-45 s" -> 30. */
 const topeBajo = (reps: string) => Number.parseInt(reps, 10) || 0
 
+const conSeries = (entrenos: Entrenos, fecha: string, id: string) =>
+  (entrenos[fecha]?.[id] ?? []).some(Boolean)
+
+/**
+ * Con qué variante se hizo (o se va a hacer) un ejercicio ese día: lo que eligió,
+ * lo que ya registró, lo último que usó, o la preferida.
+ */
+function varianteElegida(
+  ej: Ejercicio,
+  fecha: string,
+  entrenos: Entrenos,
+  elecciones: Record<string, string>,
+): Variante {
+  const explicita = ej.variantes.find((v) => v.id === elecciones[`${fecha}|${ej.id}`])
+  if (explicita) return explicita
+
+  const registrada = ej.variantes.find((v) => conSeries(entrenos, fecha, v.id))
+  if (registrada) return registrada
+
+  const anteriores = Object.keys(entrenos)
+    .filter((f) => f < fecha)
+    .sort()
+    .reverse()
+  for (const f of anteriores) {
+    const usada = ej.variantes.find((v) => conSeries(entrenos, f, v.id))
+    if (usada) return usada
+  }
+
+  return ej.variantes[0]
+}
+
 type Estado = 'completo' | 'parcial' | 'pendiente' | 'descanso'
 
-function estadoDe(iso: string, entrenos: Entrenos): Estado {
+function estadoDe(iso: string, entrenos: Entrenos, elecciones: Record<string, string>): Estado {
   const rutina = rutinaDe(deISO(iso))
   if (!rutina) return 'descanso'
-
-  const dia = entrenos[iso]
-  if (!dia) return 'pendiente'
+  if (!entrenos[iso]) return 'pendiente'
 
   let hechas = 0
   let totales = 0
   for (const ej of rutina.ejercicios) {
+    const variante = varianteElegida(ej, iso, entrenos, elecciones)
     totales += ej.series
-    hechas += (dia[ej.nombre] ?? []).filter(Boolean).length
+    hechas += (entrenos[iso][variante.id] ?? []).filter(Boolean).length
   }
   if (hechas === 0) return 'pendiente'
   return hechas >= totales ? 'completo' : 'parcial'
 }
 
+/** Cómo se lee una sesión anterior según cómo se mide el ejercicio. */
+function resumirAnterior(previa: SesionPrevia, medida: Medida) {
+  const numeros = previa.series.map((s) => s.reps).join(' · ')
+  if (medida === 'tiempo') return { carga: null, detalle: `${numeros} s` }
+  if (medida === 'corporal') {
+    return {
+      carga: previa.peso > 0 ? `+${previa.peso} kg` : 'peso corporal',
+      detalle: `${numeros} reps`,
+    }
+  }
+  return { carga: `${previa.peso} kg`, detalle: `${numeros} reps` }
+}
+
 function FilaSerie({
   indice,
+  medida,
   guardada,
   pesoSugerido,
   repsSugeridas,
   onMarcar,
 }: {
   indice: number
+  medida: Medida
   guardada: SerieHecha | null
   pesoSugerido: number
   repsSugeridas: number
@@ -69,6 +114,34 @@ function FilaSerie({
     if (hecha) onMarcar({ peso: nuevoPeso, reps: nuevasReps })
   }
 
+  const campoPeso = (etiqueta: string) => (
+    <>
+      <input
+        className="serie__campo"
+        inputMode="decimal"
+        value={peso || ''}
+        placeholder="0"
+        onChange={(e) => editar(Number(e.target.value.replace(',', '.')) || 0, reps)}
+        aria-label={`${etiqueta} de la serie ${indice + 1}`}
+      />
+      <span className="serie__unidad">kg</span>
+    </>
+  )
+
+  const campoReps = (unidad: string, etiqueta: string) => (
+    <>
+      <input
+        className="serie__campo"
+        inputMode="numeric"
+        value={reps || ''}
+        placeholder="0"
+        onChange={(e) => editar(peso, Number(e.target.value.replace(/\D/g, '')) || 0)}
+        aria-label={`${etiqueta} de la serie ${indice + 1}`}
+      />
+      <span className="serie__unidad">{unidad}</span>
+    </>
+  )
+
   return (
     <div className={`serie${hecha ? ' is-hecha' : ''}`}>
       <button
@@ -81,25 +154,23 @@ function FilaSerie({
         {hecha ? '✓' : indice + 1}
       </button>
 
-      <input
-        className="serie__campo"
-        inputMode="decimal"
-        value={peso || ''}
-        placeholder="0"
-        onChange={(e) => editar(Number(e.target.value.replace(',', '.')) || 0, reps)}
-        aria-label={`Peso de la serie ${indice + 1} en kilos`}
-      />
-      <span className="serie__unidad">kg</span>
-      <span className="serie__por">×</span>
-      <input
-        className="serie__campo"
-        inputMode="numeric"
-        value={reps || ''}
-        placeholder="0"
-        onChange={(e) => editar(peso, Number(e.target.value.replace(/\D/g, '')) || 0)}
-        aria-label={`Repeticiones de la serie ${indice + 1}`}
-      />
-      <span className="serie__unidad">reps</span>
+      {medida === 'peso' && (
+        <>
+          {campoPeso('Peso')}
+          <span className="serie__por">×</span>
+          {campoReps('reps', 'Repeticiones')}
+        </>
+      )}
+
+      {medida === 'corporal' && (
+        <>
+          {campoReps('reps', 'Repeticiones')}
+          <span className="serie__por">+</span>
+          {campoPeso('Lastre')}
+        </>
+      )}
+
+      {medida === 'tiempo' && campoReps('segundos', 'Segundos')}
     </div>
   )
 }
@@ -107,22 +178,27 @@ function FilaSerie({
 export default function Entrenamiento({
   hoy,
   entrenos,
+  elecciones,
   onMarcarSerie,
+  onElegirVariante,
 }: {
   hoy: Date
   entrenos: Entrenos
+  elecciones: Record<string, string>
   onMarcarSerie: (
     fecha: string,
-    ejercicio: string,
+    variante: string,
     indice: number,
     valor: SerieHecha | null,
     totalSeries: number,
   ) => void
+  onElegirVariante: (fecha: string, ejercicioId: string, varianteId: string) => void
 }) {
   const hoyISO = aISO(hoy)
   const [seleccionada, setSeleccionada] = useState(hoyISO)
   const [mesVisible, setMesVisible] = useState(() => new Date(hoy.getFullYear(), hoy.getMonth(), 1))
   const [abierto, setAbierto] = useState<string | null>(null)
+  const [cambiando, setCambiando] = useState<string | null>(null)
 
   const rutina = rutinaDe(deISO(seleccionada))
   const registro = entrenos[seleccionada] ?? {}
@@ -145,14 +221,14 @@ export default function Entrenamiento({
     const cursor = new Date(hoy)
     for (let i = 0; i < 180; i++) {
       const iso = aISO(cursor)
-      const estado = estadoDe(iso, entrenos)
+      const estado = estadoDe(iso, entrenos, elecciones)
       if (estado === 'completo' || estado === 'parcial') cuenta++
       // Hoy todavía se puede entrenar, así que no corta la racha.
       else if (estado === 'pendiente' && iso !== hoyISO) break
       cursor.setDate(cursor.getDate() - 1)
     }
     return cuenta
-  }, [entrenos, hoy, hoyISO])
+  }, [entrenos, elecciones, hoy, hoyISO])
 
   const mover = (delta: number) =>
     setMesVisible((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1))
@@ -190,7 +266,7 @@ export default function Entrenamiento({
           {celdas.map((f, i) => {
             if (!f) return <span key={`hueco-${i}`} />
             const iso = aISO(f)
-            const estado = estadoDe(iso, entrenos)
+            const estado = estadoDe(iso, entrenos, elecciones)
             const tipo = SEMANA[f.getDay()]
             const clases = [
               'dia',
@@ -208,6 +284,7 @@ export default function Entrenamiento({
                 onClick={() => {
                   setSeleccionada(iso)
                   setAbierto(null)
+                  setCambiando(null)
                 }}
                 aria-label={`${diaLargo.format(f)}, ${estado}`}
                 aria-current={iso === hoyISO ? 'date' : undefined}
@@ -250,24 +327,30 @@ export default function Entrenamiento({
           </p>
 
           {rutina.ejercicios.map((ej) => {
-            const series = registro[ej.nombre] ?? []
+            const variante = varianteElegida(ej, seleccionada, entrenos, elecciones)
+            const series = registro[variante.id] ?? []
             const hechas = series.filter(Boolean).length
-            const previas = historial(entrenos, ej.nombre, seleccionada)
+            const previas = historial(entrenos, variante.id, seleccionada)
             const anterior = previas[0]
-            const sugerencia = sugerir(ej, previas, seleccionada)
-            const estaAbierto = abierto === ej.nombre
+            const sugerencia = sugerir(ej, variante, previas, seleccionada)
+            const estaAbierto = abierto === ej.id
+            const eligiendo = cambiando === ej.id
 
             return (
-              <div className={`ejercicio${hechas >= ej.series ? ' is-completo' : ''}`} key={ej.nombre}>
+              <div className={`ejercicio${hechas >= ej.series ? ' is-completo' : ''}`} key={ej.id}>
                 <button
                   type="button"
                   className="ejercicio__cabecera"
-                  onClick={() => setAbierto(estaAbierto ? null : ej.nombre)}
+                  onClick={() => {
+                    setAbierto(estaAbierto ? null : ej.id)
+                    setCambiando(null)
+                  }}
                   aria-expanded={estaAbierto}
                 >
-                  <span className="ejercicio__nombre">{ej.nombre}</span>
+                  <span className="ejercicio__nombre">{variante.nombre}</span>
                   <span className="ejercicio__meta">
-                    {ej.series} × {ej.reps} · RIR {ej.rir} · {ej.descanso}
+                    {ej.series} × {ej.reps}
+                    {ej.rir !== '—' && ` · RIR ${ej.rir}`} · {ej.descanso}
                   </span>
                   <span className="ejercicio__progreso">
                     {hechas}/{ej.series}
@@ -276,38 +359,84 @@ export default function Entrenamiento({
 
                 {estaAbierto && (
                   <div className="ejercicio__cuerpo">
-                    {ej.nota && <p className="ejercicio__nota">{ej.nota}</p>}
+                    <div className="patron">
+                      <span>{ej.patron}</span>
+                      <button type="button" onClick={() => setCambiando(eligiendo ? null : ej.id)}>
+                        {eligiendo ? 'Cerrar' : 'Cambiar ejercicio'}
+                      </button>
+                    </div>
+
+                    {eligiendo && (
+                      <div className="variantes">
+                        {ej.variantes.map((alt) => {
+                          const suyas = historial(entrenos, alt.id, seleccionada)[0]
+                          return (
+                            <button
+                              key={alt.id}
+                              type="button"
+                              className={`variante${alt.id === variante.id ? ' is-activa' : ''}`}
+                              onClick={() => {
+                                onElegirVariante(seleccionada, ej.id, alt.id)
+                                setCambiando(null)
+                              }}
+                            >
+                              <span className="variante__nombre">{alt.nombre}</span>
+                              <span className="variante__dato">
+                                {suyas
+                                  ? resumirAnterior(suyas, alt.medida).carga ??
+                                    `${Math.max(...suyas.series.map((s) => s.reps))} s`
+                                  : 'sin historial'}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {variante.nota && <p className="ejercicio__nota">{variante.nota}</p>}
 
                     {anterior ? (
                       <p className="anterior">
                         <span className="anterior__fecha">{diaCorto.format(deISO(anterior.fecha))}</span>
-                        <span className="anterior__peso">{anterior.peso} kg</span>
+                        {resumirAnterior(anterior, variante.medida).carga && (
+                          <span className="anterior__peso">
+                            {resumirAnterior(anterior, variante.medida).carga}
+                          </span>
+                        )}
                         <span className="anterior__reps">
-                          {anterior.series.map((s) => s.reps).join(' · ')} reps
+                          {resumirAnterior(anterior, variante.medida).detalle}
                         </span>
                       </p>
                     ) : (
                       <p className="ejercicio__nota">
-                        Primera vez. Elegí un peso que te deje terminar las series con RIR {ej.rir};
-                        queda guardado para comparar la próxima.
+                        Primera vez con esta variante. Lo que registres queda guardado aparte de las
+                        demás, porque los pesos no son comparables entre ellas.
                       </p>
                     )}
 
                     {sugerencia && (
                       <p className={`sugerencia sugerencia--${sugerencia.tipo}`}>
-                        <strong>Hoy: {sugerencia.peso} kg</strong>
+                        <strong>
+                          Hoy:{' '}
+                          {sugerencia.peso !== null
+                            ? `${sugerencia.peso} kg`
+                            : `${sugerencia.reps} s`}
+                        </strong>
                         <span>{sugerencia.texto}</span>
                       </p>
                     )}
 
                     {Array.from({ length: ej.series }, (_, i) => (
                       <FilaSerie
-                        key={i}
+                        key={`${variante.id}-${i}`}
                         indice={i}
+                        medida={variante.medida}
                         guardada={series[i] ?? null}
                         pesoSugerido={sugerencia?.peso ?? 0}
-                        repsSugeridas={topeBajo(ej.reps)}
-                        onMarcar={(valor) => onMarcarSerie(seleccionada, ej.nombre, i, valor, ej.series)}
+                        repsSugeridas={sugerencia?.reps ?? topeBajo(ej.reps)}
+                        onMarcar={(valor) =>
+                          onMarcarSerie(seleccionada, variante.id, i, valor, ej.series)
+                        }
                       />
                     ))}
                   </div>
@@ -317,9 +446,9 @@ export default function Entrenamiento({
           })}
 
           <p className="aviso aviso--suave">
-            El peso de cada ejercicio lo sugiere la app mirando tus sesiones anteriores: sube cuando
-            cerrás el tope del rango en todas las series, y también si llevás tres sesiones o dos
-            semanas clavado en el mismo peso.
+            El peso lo sugiere la app mirando tus sesiones anteriores <strong>de esa misma
+            variante</strong>: 100 kg en la máquina no son 100 kg en barra libre, así que cada una
+            lleva su propio historial.
           </p>
         </>
       )}
