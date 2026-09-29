@@ -39,18 +39,91 @@ const v = (
   nota?: string,
 ): Variante => ({ id, nombre, medida, incremento, ...(nota ? { nota } : {}) })
 
-/** Día de la semana (0 = domingo, como getDay) -> id de la rutina. */
+/**
+ * Día de la semana (0 = domingo, como getDay) -> id de la rutina.
+ * Seis días: tres seguidos, descanso el jueves, tres más. Pecho y espalda van
+ * separados y cada grupo se entrena dos veces por semana.
+ */
 export const SEMANA: Record<number, string | null> = {
-  1: 'pierna-a',
-  2: 'torso-a',
-  3: null,
-  4: 'pierna-b',
-  5: 'torso-b',
-  6: null,
-  0: null,
+  1: 'pecho',
+  2: 'espalda',
+  3: 'pierna-a',
+  4: null,
+  5: 'pecho',
+  6: 'espalda',
+  0: 'pierna-b',
 }
 
-// Grupos que se repiten entre días: se definen una vez y se reutilizan.
+// Grupos de variantes reutilizados entre días.
+
+const PRESS_HORIZONTAL: Variante[] = [
+  v('press-banca-barra', 'Press de banca con barra', 2.5),
+  v('press-banca-mancuernas', 'Press de banca con mancuernas', 2),
+  v('press-pecho-maquina', 'Press de pecho en máquina', 5),
+  v('press-banca-multipower', 'Press de banca en multipower', 2.5),
+]
+
+const PRESS_INCLINADO: Variante[] = [
+  v('press-inclinado-mancuernas', 'Press inclinado con mancuernas', 2),
+  v('press-inclinado-barra', 'Press inclinado con barra', 2.5),
+  v('press-inclinado-maquina', 'Press inclinado en máquina', 5),
+]
+
+const APERTURA: Variante[] = [
+  v('pec-deck', 'Pec deck', 5),
+  v('aperturas-polea', 'Aperturas en polea', 2.5),
+  v('aperturas-mancuernas', 'Aperturas con mancuernas', 2),
+]
+
+const LATERALES: Variante[] = [
+  v('laterales-mancuernas', 'Elevaciones laterales con mancuernas', 2),
+  v('laterales-polea', 'Elevaciones laterales en polea', 2.5),
+  v('laterales-maquina', 'Elevaciones laterales en máquina', 5),
+  v('face-pull', 'Face pull en polea', 2.5),
+]
+
+/** Hombro del día de espalda: frontal o lateral, el que te quede libre. */
+const HOMBRO: Variante[] = [
+  v('press-militar-mancuernas', 'Press militar con mancuernas', 2),
+  v('press-militar-barra', 'Press militar con barra', 2.5),
+  v('press-hombro-maquina', 'Press de hombro en máquina', 5),
+  v('laterales-mancuernas', 'Elevaciones laterales con mancuernas', 2),
+]
+
+const TRICEPS: Variante[] = [
+  v('triceps-polea', 'Extensión de tríceps en polea', 2.5),
+  v('triceps-sobre-cabeza', 'Extensión sobre la cabeza en polea', 2.5),
+  v('press-frances', 'Press francés con barra Z', 2.5),
+  v('fondos', 'Fondos en paralelas', 2.5, 'corporal'),
+]
+
+const BICEPS: Variante[] = [
+  v('curl-barra-z', 'Curl de bíceps con barra Z', 2.5),
+  v('curl-mancuernas', 'Curl con mancuernas', 2),
+  v('curl-martillo', 'Curl martillo con mancuernas', 2),
+  v('curl-polea', 'Curl en polea', 2.5),
+]
+
+const DOMINADA: Variante[] = [
+  v('dominadas', 'Dominadas', 2.5, 'corporal', 'Cuando te salgan 10 limpias en todas las series, empezá a colgarte lastre.'),
+  v('jalon-supino', 'Jalón supino', 5),
+  v('jalon-pecho', 'Jalón al pecho', 5),
+  v('remo-invertido', 'Remo invertido', 0, 'corporal'),
+]
+
+const JALON: Variante[] = [
+  v('jalon-neutro', 'Jalón con agarre neutro', 5),
+  v('jalon-pecho', 'Jalón al pecho', 5),
+  v('pullover-polea', 'Pullover en polea', 5),
+  v('jalon-un-brazo', 'Jalón a un brazo en polea', 2.5),
+]
+
+const REMO_HORIZONTAL: Variante[] = [
+  v('remo-barra', 'Remo con barra', 2.5),
+  v('remo-mancuerna', 'Remo con mancuerna a una mano', 2),
+  v('remo-t', 'Remo en T o máquina', 5),
+  v('remo-polea-baja', 'Remo en polea baja', 5),
+]
 
 const RDL: Variante[] = [
   v('rdl-barra', 'Peso muerto rumano con barra', 5, 'peso', 'Barra pegada a la pierna y espalda recta; estirá el isquio sin redondear.'),
@@ -79,27 +152,33 @@ const GEMELO: Variante[] = [
   v('gemelo-mancuerna', 'Gemelo a una pierna con mancuerna', 2),
 ]
 
-const LATERALES: Variante[] = [
-  v('laterales-mancuernas', 'Elevaciones laterales con mancuernas', 2),
-  v('laterales-polea', 'Elevaciones laterales en polea', 2.5),
-  v('laterales-maquina', 'Elevaciones laterales en máquina', 5),
-]
-
-const PRESS_MILITAR: Variante[] = [
-  v('press-militar-mancuernas', 'Press militar con mancuernas', 2),
-  v('press-militar-barra', 'Press militar con barra', 2.5),
-  v('press-hombro-maquina', 'Press de hombro en máquina', 5),
-  v('arnold', 'Press Arnold', 2),
-]
-
-const REMO_HORIZONTAL: Variante[] = [
-  v('remo-barra', 'Remo con barra', 2.5),
-  v('remo-mancuerna', 'Remo con mancuerna a una mano', 2),
-  v('remo-t', 'Remo en T o máquina', 5),
-  v('remo-polea-baja', 'Remo en polea baja', 5),
-]
-
 export const RUTINA: Record<string, DiaRutina> = {
+  pecho: {
+    id: 'pecho',
+    nombre: 'Pecho',
+    foco: 'Empuje, hombro y tríceps',
+    ejercicios: [
+      { id: 'press-horizontal', patron: 'Press horizontal', series: 4, reps: '6-8', rir: '2', descanso: '3 min', variantes: PRESS_HORIZONTAL },
+      { id: 'press-inclinado', patron: 'Press inclinado', series: 3, reps: '8-10', rir: '2', descanso: '2.5 min', variantes: PRESS_INCLINADO },
+      { id: 'apertura', patron: 'Apertura de pecho', series: 3, reps: '12-15', rir: '1', descanso: '75 s', variantes: APERTURA },
+      { id: 'hombro-lateral', patron: 'Deltoide lateral o posterior', series: 3, reps: '12-15', rir: '0-1', descanso: '60 s', variantes: LATERALES },
+      { id: 'triceps', patron: 'Extensión de codo', series: 3, reps: '10-12', rir: '1', descanso: '75 s', variantes: TRICEPS },
+    ],
+  },
+
+  espalda: {
+    id: 'espalda',
+    nombre: 'Espalda',
+    foco: 'Jalón, remo y bíceps',
+    ejercicios: [
+      { id: 'jalon-pesado', patron: 'Jalón vertical pesado', series: 4, reps: '6-10', rir: '2', descanso: '2.5 min', variantes: DOMINADA },
+      { id: 'jalon-segundo', patron: 'Jalón vertical', series: 3, reps: '10-12', rir: '1-2', descanso: '90 s', variantes: JALON },
+      { id: 'remo', patron: 'Remo horizontal', series: 4, reps: '8-10', rir: '2', descanso: '2 min', variantes: REMO_HORIZONTAL },
+      { id: 'hombro', patron: 'Hombro frontal o lateral', series: 3, reps: '10-12', rir: '1-2', descanso: '90 s', variantes: HOMBRO },
+      { id: 'biceps', patron: 'Flexión de codo', series: 3, reps: '10-12', rir: '1', descanso: '75 s', variantes: BICEPS },
+    ],
+  },
+
   'pierna-a': {
     id: 'pierna-a',
     nombre: 'Pierna A',
@@ -133,103 +212,9 @@ export const RUTINA: Record<string, DiaRutina> = {
           v('zancada-caminando', 'Zancada caminando con mancuernas', 2),
         ],
       },
-      { id: 'rdl', patron: 'Bisagra de cadera', series: 3, reps: '8-10', rir: '2', descanso: '2 min', variantes: RDL },
       { id: 'extension', patron: 'Extensión de rodilla', series: 3, reps: '12-15', rir: '1', descanso: '90 s', variantes: EXTENSION },
       { id: 'curl-femoral', patron: 'Flexión de rodilla', series: 3, reps: '10-12', rir: '1', descanso: '90 s', variantes: CURL_FEMORAL },
       { id: 'gemelo', patron: 'Gemelo', series: 4, reps: '10-15', rir: '0-1', descanso: '60 s', variantes: GEMELO },
-      {
-        id: 'core-isometrico',
-        patron: 'Core isométrico',
-        series: 3,
-        reps: '30-45 s',
-        rir: '—',
-        descanso: '60 s',
-        variantes: [
-          v('plancha', 'Plancha abdominal', 0, 'tiempo'),
-          v('plancha-lateral', 'Plancha lateral', 0, 'tiempo'),
-          v('hollow', 'Hollow hold', 0, 'tiempo'),
-        ],
-      },
-    ],
-  },
-
-  'torso-a': {
-    id: 'torso-a',
-    nombre: 'Torso A',
-    foco: 'Énfasis en empuje',
-    ejercicios: [
-      {
-        id: 'press-horizontal',
-        patron: 'Press horizontal',
-        series: 4,
-        reps: '6-8',
-        rir: '2',
-        descanso: '3 min',
-        variantes: [
-          v('press-banca-barra', 'Press de banca con barra', 2.5),
-          v('press-banca-mancuernas', 'Press de banca con mancuernas', 2),
-          v('press-pecho-maquina', 'Press de pecho en máquina', 5),
-          v('press-banca-multipower', 'Press de banca en multipower', 2.5),
-        ],
-      },
-      { id: 'remo', patron: 'Remo horizontal', series: 4, reps: '8-10', rir: '2', descanso: '2 min', variantes: REMO_HORIZONTAL },
-      { id: 'press-vertical', patron: 'Press vertical', series: 3, reps: '8-10', rir: '1-2', descanso: '2 min', variantes: PRESS_MILITAR },
-      {
-        id: 'jalon',
-        patron: 'Jalón vertical',
-        series: 3,
-        reps: '10-12',
-        rir: '1-2',
-        descanso: '90 s',
-        variantes: [
-          v('jalon-pecho', 'Jalón al pecho', 5),
-          v('jalon-neutro', 'Jalón con agarre neutro', 5),
-          v('jalon-supino', 'Jalón supino', 5),
-          v('pullover-polea', 'Pullover en polea', 5),
-        ],
-      },
-      {
-        id: 'apertura',
-        patron: 'Apertura de pecho',
-        series: 3,
-        reps: '12-15',
-        rir: '1',
-        descanso: '75 s',
-        variantes: [
-          v('pec-deck', 'Pec deck', 5),
-          v('aperturas-polea', 'Aperturas en polea', 2.5),
-          v('aperturas-mancuernas', 'Aperturas con mancuernas', 2),
-        ],
-      },
-      { id: 'laterales', patron: 'Deltoide lateral', series: 4, reps: '12-15', rir: '0-1', descanso: '60 s', variantes: LATERALES },
-      {
-        id: 'triceps',
-        patron: 'Extensión de codo',
-        series: 3,
-        reps: '10-12',
-        rir: '1',
-        descanso: '75 s',
-        variantes: [
-          v('triceps-polea', 'Extensión de tríceps en polea', 2.5),
-          v('press-frances', 'Press francés con barra Z', 2.5),
-          v('triceps-sobre-cabeza', 'Extensión sobre la cabeza en polea', 2.5),
-          v('fondos', 'Fondos en paralelas', 2.5, 'corporal'),
-        ],
-      },
-      {
-        id: 'biceps',
-        patron: 'Flexión de codo',
-        series: 3,
-        reps: '10-12',
-        rir: '1',
-        descanso: '75 s',
-        variantes: [
-          v('curl-barra-z', 'Curl de bíceps con barra Z', 2.5),
-          v('curl-mancuernas', 'Curl con mancuernas', 2),
-          v('curl-polea', 'Curl en polea', 2.5),
-          v('curl-predicador', 'Curl predicador en máquina', 5),
-        ],
-      },
     ],
   },
 
@@ -242,7 +227,7 @@ export const RUTINA: Record<string, DiaRutina> = {
       {
         id: 'hip-thrust',
         patron: 'Extensión de cadera',
-        series: 4,
+        series: 3,
         reps: '8-10',
         rir: '1-2',
         descanso: '2 min',
@@ -268,11 +253,10 @@ export const RUTINA: Record<string, DiaRutina> = {
         ],
       },
       { id: 'curl-femoral', patron: 'Flexión de rodilla', series: 3, reps: '12-15', rir: '1', descanso: '90 s', variantes: CURL_FEMORAL },
-      { id: 'extension', patron: 'Extensión de rodilla', series: 3, reps: '12-15', rir: '1', descanso: '90 s', variantes: EXTENSION },
       { id: 'gemelo', patron: 'Gemelo', series: 4, reps: '12-15', rir: '0-1', descanso: '60 s', variantes: GEMELO },
       {
         id: 'core',
-        patron: 'Flexión de tronco',
+        patron: 'Core',
         series: 3,
         reps: '10-15',
         rir: '1',
@@ -281,84 +265,7 @@ export const RUTINA: Record<string, DiaRutina> = {
           v('crunch-polea', 'Crunch en polea', 5),
           v('rueda-abdominal', 'Rueda abdominal', 0, 'corporal'),
           v('elevacion-piernas', 'Elevación de piernas colgado', 0, 'corporal'),
-          v('crunch-maquina', 'Crunch en máquina', 5),
-        ],
-      },
-    ],
-  },
-
-  'torso-b': {
-    id: 'torso-b',
-    nombre: 'Torso B',
-    foco: 'Énfasis en jalón',
-    ejercicios: [
-      {
-        id: 'dominada',
-        patron: 'Jalón vertical pesado',
-        series: 4,
-        reps: '6-10',
-        rir: '2',
-        descanso: '2.5 min',
-        variantes: [
-          v('dominadas', 'Dominadas', 2.5, 'corporal', 'Cuando te salgan 10 limpias en todas las series, empezá a colgarte lastre.'),
-          v('jalon-supino', 'Jalón supino', 5),
-          v('jalon-neutro', 'Jalón con agarre neutro', 5),
-          v('remo-invertido', 'Remo invertido', 0, 'corporal'),
-        ],
-      },
-      {
-        id: 'press-inclinado',
-        patron: 'Press inclinado',
-        series: 4,
-        reps: '8-10',
-        rir: '2',
-        descanso: '2.5 min',
-        variantes: [
-          v('press-inclinado-mancuernas', 'Press inclinado con mancuernas', 2),
-          v('press-inclinado-barra', 'Press inclinado con barra', 2.5),
-          v('press-inclinado-maquina', 'Press inclinado en máquina', 5),
-        ],
-      },
-      { id: 'remo', patron: 'Remo horizontal', series: 3, reps: '10-12', rir: '1-2', descanso: '90 s', variantes: REMO_HORIZONTAL },
-      { id: 'press-vertical', patron: 'Press vertical', series: 3, reps: '8-10', rir: '1-2', descanso: '2 min', variantes: PRESS_MILITAR },
-      { id: 'laterales', patron: 'Deltoide lateral', series: 3, reps: '15-20', rir: '0-1', descanso: '60 s', variantes: LATERALES },
-      {
-        id: 'deltoide-posterior',
-        patron: 'Deltoide posterior',
-        series: 3,
-        reps: '15-20',
-        rir: '1',
-        descanso: '60 s',
-        variantes: [
-          v('face-pull', 'Face pull en polea', 2.5),
-          v('pajaros', 'Pájaros con mancuernas', 2),
-          v('posterior-maquina', 'Deltoide posterior en máquina', 5),
-        ],
-      },
-      {
-        id: 'biceps-martillo',
-        patron: 'Flexión de codo neutra',
-        series: 3,
-        reps: '10-12',
-        rir: '1',
-        descanso: '75 s',
-        variantes: [
-          v('curl-martillo', 'Curl martillo con mancuernas', 2),
-          v('curl-martillo-polea', 'Curl martillo en polea con cuerda', 2.5),
-          v('curl-inverso', 'Curl inverso con barra', 2.5),
-        ],
-      },
-      {
-        id: 'triceps-largo',
-        patron: 'Extensión de codo sobre la cabeza',
-        series: 3,
-        reps: '12-15',
-        rir: '1',
-        descanso: '75 s',
-        variantes: [
-          v('triceps-sobre-cabeza', 'Extensión sobre la cabeza en polea', 2.5),
-          v('press-frances-mancuernas', 'Press francés con mancuernas', 2),
-          v('triceps-polea', 'Extensión de tríceps en polea', 2.5),
+          v('plancha', 'Plancha abdominal', 0, 'tiempo'),
         ],
       },
     ],

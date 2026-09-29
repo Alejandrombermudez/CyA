@@ -104,7 +104,13 @@ function estadoDe(iso: string, entrenos: Entrenos, elecciones: Record<string, st
     totales += ej.series
     hechas += (entrenos[iso][variante.id] ?? []).filter(Boolean).length
   }
-  if (hechas === 0) return 'pendiente'
+
+  if (hechas === 0) {
+    // Si ese día se registró algo que hoy ya no pertenece a esa sesión (porque
+    // cambió qué toca cada día), igual se entrenó: no marcarlo como pendiente.
+    const algo = Object.values(entrenos[iso]).some((series) => series.some(Boolean))
+    return algo ? 'parcial' : 'pendiente'
+  }
   return hechas >= totales ? 'completo' : 'parcial'
 }
 
@@ -327,7 +333,8 @@ export default function Entrenamiento({
           {racha} {racha === 1 ? 'sesión' : 'sesiones'}
         </p>
         <p className="resumen__pie">
-          Lunes y jueves pierna · martes y viernes torso · miércoles y fin de semana, descanso
+          Lunes y viernes pecho · martes y sábado espalda · miércoles y domingo pierna · jueves,
+          descanso
         </p>
       </div>
 
